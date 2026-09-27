@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeoPLT26 — Neonatal Thrombocytopenia & Platelet Transfusion Decision Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Playfair+Display:ital,wght@1,500;1,600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#0B1F2B;
+    --glass-panel:#12313F;
+    --glass-panel-2:#173B4B;
+    --incubator-glow:#F2A65A;
+    --plt-drop:#E4572E;
+    --monitor-teal:#4FB6A6;
+    --steroid-accent:#B79CF0;
+    --paper:#F5F7F6;
+    --paper-dim:#C9D6D9;
+    --ink:#0E1B20;
+    --line:rgba(245,247,246,0.14);
+    --danger:#D93B3B;
+    --warn:#E4A11B;
+    --ok:#3F9E7F;
+    --font-head:'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --font-body:'IBM Plex Sans', -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--navy-deep);color:var(--ink);font-family:var(--font-body);}
+  body{min-height:100vh;}
+  a{color:inherit;}
+  .skip{position:absolute;left:-999px;}
+  .skip:focus{left:8px;top:8px;background:#fff;color:#000;padding:8px 12px;z-index:999;border-radius:6px;}
+
+  /* ===== HEADER ===== */
+  header.hero{
+    position:relative;
+    background:linear-gradient(180deg,#081820 0%, var(--navy-deep) 70%, #0E2733 100%);
+    color:var(--paper);
+    padding:38px 24px 30px;
+    overflow:hidden;
+    border-bottom:1px solid rgba(242,166,90,0.25);
+  }
+  .hero-art{
+    position:absolute; inset:0;
+    opacity:0.5;
+    pointer-events:none;
+  }
+  .hero-inner{
+    position:relative;
+    max-width:1180px;
+    margin:0 auto;
+    display:flex;
+    align-items:center;
+    gap:28px;
+    flex-wrap:wrap;
+  }
+  .hero-mark{ flex:0 0 auto; width:104px; }
+  .hero-text{ flex:1 1 320px; min-width:260px; }
+  .eyebrow-line{
+    font-size:13px;
+    letter-spacing:0.02em;
+    color:var(--incubator-glow);
+    font-weight:600;
+    margin:0 0 6px;
+  }
+  h1.title{
+    font-family:var(--font-head);
+    font-weight:600;
+    font-size:clamp(30px,4.4vw,46px);
+    line-height:1.05;
+    margin:0 0 8px;
+    color:var(--paper);
+  }
+  h1.title .accent{ color:var(--incubator-glow); }
+  .subtitle{
+    font-size:16px;
+    color:var(--paper-dim);
+    margin:0 0 14px;
+    max-width:60ch;
+    line-height:1.45;
+  }
+  .byline{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:14px; text-align:center;
+    color:var(--paper);
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.14);
+    padding:12px 20px;
+    border-radius:14px;
+    margin:0 auto;
+    width:fit-content; max-width:100%;
+  }
+  .byline strong{ font-weight:600; font-size:15px; }
+  .byline .dot{ display:none; }
+  .credit-line{
+    font-family:var(--font-body); font-size:12.5px; font-weight:600;
+    color:var(--incubator-glow); margin:8px 0 0; letter-spacing:0.02em;
+  }
+  .keepsake{
+    font-family:'Playfair Display', var(--font-head); font-style:italic; font-weight:500;
+    font-size:14.5px; line-height:1.6; color:var(--monitor-teal);
+    margin:10px 0 0; max-width:46ch;
+  }
+  .keepsake .ks-sign{ display:block; margin-top:2px; color:#8FE0C4; }
+  .qr-card{
+    flex:0 0 auto;
+    background:rgba(255,255,255,0.94);
+    border-radius:12px; padding:12px 14px;
+    display:flex; align-items:center; gap:10px;
+    box-shadow:0 4px 18px rgba(0,0,0,0.25);
+  }
+  .qr-card svg{ width:78px; height:78px; display:block; }
+  .qr-card .qr-text{ color:var(--navy-deep); max-width:150px; }
+  .qr-card .qr-label{ font-size:11px; font-weight:700; color:var(--navy-deep); margin:0 0 3px; text-transform:uppercase; letter-spacing:0.03em; }
+  .qr-card .qr-url{ font-size:10.5px; word-break:break-all; color:#33474B; line-height:1.35; font-family:var(--font-body); }
+
+  /* ===== LAYOUT ===== */
+  main{
+    background:var(--paper);
+  }
+  .shell{
+    max-width:1180px;
+    margin:0 auto;
+    padding:26px 20px 60px;
+    display:grid;
+    grid-template-columns: 1fr 380px;
+    gap:24px;
+    align-items:start;
+  }
+  @media (max-width: 900px){
+    .shell{ grid-template-columns: 1fr; }
+    .rec-col{ order:1; }
+    .form-col{ order:2; }
+  }
+
+  /* ===== FORM COLUMN ===== */
+  .section{
+    background:#fff;
+    border:1px solid #E1E7E6;
+    border-radius:10px;
+    margin-bottom:16px;
+    overflow:hidden;
+  }
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    padding:14px 18px;
+    background:#F0F4F3;
+    border-bottom:1px solid #E1E7E6;
+  }
+  .section-head h2{
+    font-family:var(--font-head);
+    font-size:18px;
+    margin:0;
+    font-weight:600;
+  }
+  .section-head .step-no{
+    font-size:12px;
+    color:#5B6B6D;
+    font-weight:600;
+  }
+  .section-body{ padding:14px 18px 18px; }
+  .field-group{ margin-bottom:14px; }
+  .field-group:last-child{ margin-bottom:0; }
+  .field-legend{ font-size:13px; font-weight:600; color:#33474B; margin-bottom:8px; }
+  .options{ display:flex; flex-wrap:wrap; gap:8px; }
+  .opt{
+    display:flex; align-items:center; gap:8px;
+    border:1.5px solid #D6DEDD;
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:14px;
+    cursor:pointer;
+    background:#FAFCFC;
+    transition:border-color .15s, background .15s;
+    user-select:none;
+  }
+  .opt:hover{ border-color:var(--monitor-teal); }
+  .opt input{ accent-color:var(--monitor-teal); width:16px;height:16px; margin:0; }
+  .opt.checked{ border-color:var(--monitor-teal); background:#EAF7F4; }
+  .opt.checked.urgent{ border-color:var(--danger); background:#FCEBEA; }
+  .hint{ font-size:12.5px; color:#6C7C7E; margin-top:6px; line-height:1.4; }
+
+  /* ===== RECOMMENDATION COLUMN ===== */
+  .rec-col{ position:sticky; top:16px; }
+  @media (max-width:900px){ .rec-col{ position:static; } }
+  .rec-card{
+    background:var(--navy-deep);
+    color:var(--paper);
+    border-radius:12px;
+    padding:20px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .rec-card h2{
+    font-family:var(--font-head);
+    font-size:19px;
+    margin:0 0 12px;
+    color:var(--paper);
+  }
+  .risk-badge{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:9px 14px; border-radius:8px;
+    font-weight:700; font-size:14.5px;
+    margin-bottom:14px;
+  }
+  .risk-badge .lamp{ width:12px; height:12px; border-radius:50%; }
+  .risk-red{ background:rgba(217,59,59,0.18); color:#FF8F8F; }
+  .risk-red .lamp{ background:#FF5C5C; box-shadow:0 0 8px #FF5C5C; }
+  .risk-orange{ background:rgba(228,161,27,0.18); color:#FFC873; }
+  .risk-orange .lamp{ background:#F2A65A; box-shadow:0 0 8px #F2A65A; }
+  .risk-yellow{ background:rgba(228,161,27,0.14); color:#F4D67B; }
+  .risk-yellow .lamp{ background:#F0D264; box-shadow:0 0 8px #F0D264; }
+  .risk-green{ background:rgba(63,158,127,0.18); color:#8FE0C4; }
+  .risk-green .lamp{ background:var(--monitor-teal); box-shadow:0 0 8px var(--monitor-teal); }
+  .risk-none{ background:rgba(255,255,255,0.08); color:var(--paper-dim); }
+  .risk-none .lamp{ background:#7C8B8E; }
+
+  .tags{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .tag{
+    font-size:11.5px; font-weight:600; letter-spacing:0.01em;
+    padding:5px 9px; border-radius:999px;
+    background:rgba(255,255,255,0.09);
+    border:1px solid rgba(255,255,255,0.14);
+    color:var(--paper);
+  }
+
+  .steps{ list-style:none; margin:0 0 16px; padding:0; counter-reset:step; }
+  .steps li{
+    counter-increment:step;
+    position:relative;
+    padding:10px 0 10px 34px;
+    border-bottom:1px dashed rgba(255,255,255,0.12);
+    font-size:14.5px;
+    line-height:1.45;
+  }
+  .steps li:last-child{ border-bottom:none; }
+  .steps li::before{
+    content:counter(step);
+    position:absolute; left:0; top:9px;
+    width:22px; height:22px;
+    border-radius:50%;
+    background:var(--glass-panel-2);
+    border:1px solid rgba(255,255,255,0.2);
+    color:var(--incubator-glow);
+    font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cite-tag{
+    display:inline-block;
+    font-size:10.5px; font-weight:700;
+    color:var(--incubator-glow);
+    background:rgba(242,166,90,0.14);
+    border:1px solid rgba(242,166,90,0.35);
+    border-radius:5px;
+    padding:1px 6px;
+    margin-left:6px;
+    cursor:pointer;
+    vertical-align:middle;
+  }
+  .placeholder{
+    font-size:14px; color:var(--paper-dim); line-height:1.5;
+    padding:8px 0 4px;
+  }
+  .confidence-line{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:13px; color:var(--paper-dim);
+    border-top:1px solid rgba(255,255,255,0.1);
+    padding-top:12px; margin-top:4px;
+  }
+  .confidence-pill{ font-weight:700; }
+  .conf-high{ color:#8FE0C4; }
+  .conf-mod{ color:#F4D67B; }
+  .conf-low{ color:#FF8F8F; }
+  .missing-box{
+    margin-top:10px; font-size:12.5px; color:var(--paper-dim);
+    background:rgba(255,255,255,0.05); border-radius:8px; padding:10px 12px;
+  }
+  .missing-box strong{ color:var(--paper); }
+
+  .override-box{
+    margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.1);
+  }
+  .override-box label.check{
+    display:flex; align-items:flex-start; gap:8px; font-size:13.5px; cursor:pointer; margin-bottom:8px;
+  }
+  .override-box textarea{
+    width:100%; min-height:64px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.06); color:var(--paper); font-family:var(--font-body);
+    font-size:13.5px; padding:8px 10px; resize:vertical;
+  }
+  .override-box textarea::placeholder{ color:rgba(245,247,246,0.4); }
+  .override-note{
+    margin-top:8px; font-size:12.5px; padding:8px 10px; border-radius:8px;
+    background:rgba(228,161,27,0.14); border:1px solid rgba(228,161,27,0.35); color:#FFDFA6;
+  }
+
+  /* ===== EVIDENCE PANEL ===== */
+  .evidence{
+    background:#fff; border:1px solid #E1E7E6; border-radius:10px; padding:16px 18px; margin-top:4px;
+  }
+  .evidence h2{ font-family:var(--font-head); font-size:18px; margin:0 0 4px; }
+  .evidence .rev-date{ font-size:12.5px; color:#6C7C7E; margin-bottom:12px; }
+  .ev-item{ padding:10px 0; border-bottom:1px solid #EEF2F1; font-size:13.5px; line-height:1.5; }
+  .ev-item:last-child{ border-bottom:none; }
+  .ev-item .ev-tag{ font-weight:700; color:var(--monitor-teal); margin-right:6px; }
+  .ev-item.active-cite{ background:#F2FBF8; margin:0 -18px; padding:10px 18px; }
+
+  /* ===== FINAL MANAGEMENT PLAN ===== */
+  .finalplan-wrap{ max-width:1180px; margin:8px auto 0; padding:0 20px 10px; }
+  .finalplan{
+    background:var(--navy-deep); color:var(--paper);
+    border-radius:12px; padding:22px 24px 26px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .finalplan h2{ font-family:var(--font-head); font-size:21px; margin:0 0 4px; }
+  .finalplan .fp-sub{ font-size:13px; color:var(--paper-dim); margin:0 0 16px; }
+  .plan-pills{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; }
+  .plan-pill{
+    flex:1 1 200px; min-width:180px;
+    border:1.5px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.04);
+    border-radius:10px; padding:12px 14px;
+    font-size:13.5px; font-weight:600; color:var(--paper-dim);
+    display:flex; align-items:center; gap:9px;
+  }
+  .plan-pill .dot{ width:10px;height:10px;border-radius:50%; background:#5A6C6F; flex:0 0 auto; }
+  .plan-pill.active{
+    border-color:var(--incubator-glow); background:rgba(242,166,90,0.12); color:var(--paper);
+  }
+  .plan-pill.active .dot{ background:var(--incubator-glow); box-shadow:0 0 8px var(--incubator-glow); }
+  .fp-empty{ font-size:14px; color:var(--paper-dim); }
+
+  .tx-box{
+    margin-top:8px; padding-top:18px; border-top:1px solid rgba(255,255,255,0.12);
+  }
+  .tx-box h3{ font-family:var(--font-head); font-size:17px; margin:0 0 4px; color:var(--incubator-glow); }
+  .tx-box .tx-note{ font-size:12.5px; color:var(--paper-dim); margin-bottom:14px; }
+  .tx-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+  @media (max-width:760px){ .tx-grid{ grid-template-columns:1fr 1fr; } }
+  .tx-field label{ display:block; font-size:12px; font-weight:600; color:var(--paper-dim); margin-bottom:5px; }
+  .tx-field input, .tx-field select{
+    width:100%; padding:8px 9px; border-radius:7px; border:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.06); color:var(--paper); font-family:var(--font-body); font-size:13.5px;
+  }
+  .tx-impression label{ display:block; font-size:12px; font-weight:600; color:var(--paper-dim); margin-bottom:5px; }
+  .tx-impression textarea{
+    width:100%; min-height:52px; padding:9px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.06); color:var(--paper); font-family:var(--font-body); font-size:13.5px; resize:vertical;
+    margin-bottom:16px;
+  }
+  .tx-result{
+    background:rgba(79,182,166,0.1); border:1px solid rgba(79,182,166,0.3);
+    border-radius:10px; padding:14px 16px; margin-bottom:14px;
+  }
+  .tx-result .tx-line{ font-size:14.5px; margin:0 0 6px; }
+  .tx-result .tx-line:last-child{ margin-bottom:0; }
+  .tx-result strong{ color:var(--monitor-teal); }
+  .tx-list{ list-style:disc; margin:0 0 4px; padding-left:20px; font-size:13.5px; line-height:1.55; }
+  .tx-list li{ margin-bottom:5px; }
+  .tx-cite{ margin-top:10px; }
+  .tx-subhead{ font-size:13.5px; font-weight:700; color:var(--paper); margin:16px 0 8px; }
+  .tx-nait-box{
+    margin-top:4px; padding:14px 16px; border-radius:10px;
+    background:rgba(228,161,27,0.1); border:1px solid rgba(228,161,27,0.32);
+  }
+  .tx-nait-box .tx-nait-title{ font-weight:700; color:#FFC873; font-size:13.5px; margin-bottom:8px; }
+  .tx-nait-box ol{ margin:0; padding-left:20px; font-size:13.5px; line-height:1.6; }
+  .tx-nait-box li{ margin-bottom:6px; }
+  .seq-panel{
+    margin-bottom:18px; padding:14px 16px; border-radius:10px;
+    background:rgba(79,182,166,0.09); border:1px solid rgba(79,182,166,0.3);
+  }
+  .seq-title{ font-weight:700; font-size:13.5px; color:var(--monitor-teal); margin-bottom:8px; }
+  .seq-list{ list-style:none; margin:0 0 8px; padding:0; display:flex; gap:14px; flex-wrap:wrap; }
+  .seq-list li{
+    font-size:13.5px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
+    border-radius:8px; padding:8px 12px;
+  }
+  .seq-note{ font-size:12.5px; color:var(--paper-dim); margin:0; line-height:1.5; }
+  .step-badge{
+    display:inline-block; font-size:11px; font-weight:700; letter-spacing:0.03em;
+    background:var(--incubator-glow); color:#1C1204;
+    border-radius:5px; padding:2px 8px; margin-left:9px; vertical-align:middle;
+  }
+  .med-note{
+    border-radius:8px; padding:12px 14px; margin-bottom:14px;
+    border-left:4px solid; background:rgba(255,255,255,0.045);
+  }
+  .med-note h4{ margin:0 0 8px; font-size:13.5px; font-weight:700; }
+  .med-note ul{ margin:0; padding-left:18px; font-size:13.5px; line-height:1.55; }
+  .med-note li{ margin-bottom:5px; }
+  .med-note.ivig{ border-left-color: var(--monitor-teal); }
+  .med-note.ivig h4{ color: var(--monitor-teal); }
+  .med-note.steroid{ border-left-color: var(--steroid-accent); }
+  .med-note.steroid h4{ color: var(--steroid-accent); }
+
+  .discharge-box{
+    margin-top:4px; border-radius:12px; padding:18px 20px;
+    background:rgba(228,87,46,0.1); border:2px solid rgba(228,87,46,0.5);
+  }
+  .discharge-box .dc-title{
+    display:flex; align-items:center; gap:9px;
+    font-family:var(--font-head); font-size:17px; font-weight:600;
+    color:var(--plt-drop); margin-bottom:4px;
+  }
+  .discharge-box .dc-sub{ font-size:12.5px; color:var(--paper-dim); margin-bottom:14px; }
+  .dc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:760px){ .dc-grid{ grid-template-columns:1fr; } }
+  .dc-item h5{ margin:0 0 6px; font-size:13px; font-weight:700; color:var(--paper); }
+  .dc-item ul{ margin:0 0 4px; padding-left:18px; font-size:13px; line-height:1.55; color:var(--paper-dim); }
+  .dc-item li{ margin-bottom:5px; }
+  .dc-item li strong{ color:var(--paper); }
+
+  footer.disclaimer{
+    background:var(--navy-deep); color:var(--paper-dim);
+    font-size:12.5px; line-height:1.6; text-align:center;
+    padding:22px 20px 30px; border-top:1px solid rgba(255,255,255,0.08);
+  }
+  footer.disclaimer strong{ color:var(--paper); }
+
+  @media (prefers-reduced-motion: no-preference){
+    .glow-pulse{ animation: pulse 4.5s ease-in-out infinite; }
+  }
+  @keyframes pulse{ 0%,100%{opacity:0.85;} 50%{opacity:0.45;} }
+</style>
+</head>
+<body>
+<a href="#form" class="skip">Skip to checklist</a>
+
+<header class="hero">
+  <svg class="hero-art" viewBox="0 0 1180 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <!-- incubator, right side -->
+    <g transform="translate(880,20)">
+      <rect x="10" y="70" width="230" height="110" rx="14" fill="none" stroke="#3A5A66" stroke-width="3"/>
+      <path d="M10 70 Q125 10 240 70" fill="none" stroke="#3A5A66" stroke-width="3"/>
+      <line x1="60" y1="180" x2="60" y2="205" stroke="#3A5A66" stroke-width="6" stroke-linecap="round"/>
+      <line x1="190" y1="180" x2="190" y2="205" stroke="#3A5A66" stroke-width="6" stroke-linecap="round"/>
+      <ellipse class="glow-pulse" cx="125" cy="120" rx="70" ry="42" fill="var(--incubator-glow)" opacity="0.55"/>
+      <circle cx="35" cy="110" r="9" fill="none" stroke="#3A5A66" stroke-width="2.5"/>
+      <circle cx="215" cy="110" r="9" fill="none" stroke="#3A5A66" stroke-width="2.5"/>
+    </g>
+    <!-- transfusion line + platelet drops, center-left -->
+    <g transform="translate(560,0)">
+      <line x1="0" y1="0" x2="0" y2="60" stroke="#3A5A66" stroke-width="3"/>
+      <rect x="-16" y="0" width="32" height="14" rx="3" fill="#3A5A66"/>
+      <line x1="0" y1="60" x2="40" y2="150" stroke="#3A5A66" stroke-width="2.5" stroke-dasharray="1 7" stroke-linecap="round"/>
+      <circle cx="14" cy="92" r="7" fill="var(--plt-drop)" opacity="0.9"/>
+      <circle cx="24" cy="118" r="9" fill="var(--plt-drop)" opacity="0.75"/>
+      <circle cx="34" cy="146" r="11" fill="var(--plt-drop)" opacity="0.6"/>
+    </g>
+  </svg>
+  <div class="hero-inner">
+    <div class="hero-mark" aria-hidden="true">
+      <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="var(--incubator-glow)" stroke-width="2.5" opacity="0.6"/>
+        <circle cx="50" cy="38" r="16" fill="var(--plt-drop)" opacity="0.85"/>
+        <circle cx="38" cy="62" r="10" fill="var(--monitor-teal)" opacity="0.85"/>
+        <circle cx="64" cy="64" r="7" fill="var(--incubator-glow)" opacity="0.9"/>
+      </svg>
+    </div>
+    <div class="hero-text">
+      <p class="eyebrow-line">Neonatal Platelet Decision Support</p>
+      <h1 class="title">Neo<span class="accent">PLT</span>26</h1>
+      <p class="subtitle">A step-by-step, evidence-referenced pathway for neonatal thrombocytopenia and platelet transfusion decisions — built from clinical context, not platelet count alone.</p>
+      <div class="byline">
+        <span>By</span>
+        <strong>Dr. Khalil Albiroty</strong>
+        <span>Ped. Hem&amp;Oncologist</span>
+        <span><a href="mailto:kh.albiroty87@gmail.com" style="color:inherit;">kh.albiroty87@gmail.com</a></span>
+      </div>
+      <p class="keepsake">A small keepsake from the 6th Kanad Hospital Neonatal–Perinatal Medicine Conference<br>With appreciation to the Neonatal Team<span class="ks-sign">— Dr. Khalil Albiroty</span></p>
+    </div>
+    <div class="qr-card">
+      <svg viewBox="0 0 33 33" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR code linking to the NeoPLT26 tool"><rect x="0" y="0" width="33" height="33" fill="#ffffff"/><g fill="#0B1F2B"><rect x="2" y="2" width="7" height="1"/><rect x="10" y="2" width="4" height="1"/><rect x="15" y="2" width="1" height="1"/><rect x="18" y="2" width="3" height="1"/><rect x="24" y="2" width="7" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="13" y="3" width="2" height="1"/><rect x="18" y="3" width="2" height="1"/><rect x="21" y="3" width="1" height="1"/><rect x="24" y="3" width="1" height="1"/><rect x="30" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="4" y="4" width="3" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="11" y="4" width="1" height="1"/><rect x="13" y="4" width="1" height="1"/><rect x="15" y="4" width="1" height="1"/><rect x="17" y="4" width="1" height="1"/><rect x="20" y="4" width="2" height="1"/><rect x="24" y="4" width="1" height="1"/><rect x="26" y="4" width="3" height="1"/><rect x="30" y="4" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="4" y="5" width="3" height="1"/><rect x="8" y="5" width="1" height="1"/><rect x="12" y="5" width="4" height="1"/><rect x="19" y="5" width="1" height="1"/><rect x="21" y="5" width="2" height="1"/><rect x="24" y="5" width="1" height="1"/><rect x="26" y="5" width="3" height="1"/><rect x="30" y="5" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/><rect x="4" y="6" width="3" height="1"/><rect x="8" y="6" width="1" height="1"/><rect x="12" y="6" width="5" height="1"/><rect x="19" y="6" width="3" height="1"/><rect x="24" y="6" width="1" height="1"/><rect x="26" y="6" width="3" height="1"/><rect x="30" y="6" width="1" height="1"/><rect x="2" y="7" width="1" height="1"/><rect x="8" y="7" width="1" height="1"/><rect x="11" y="7" width="1" height="1"/><rect x="13" y="7" width="4" height="1"/><rect x="19" y="7" width="2" height="1"/><rect x="24" y="7" width="1" height="1"/><rect x="30" y="7" width="1" height="1"/><rect x="2" y="8" width="7" height="1"/><rect x="10" y="8" width="1" height="1"/><rect x="12" y="8" width="1" height="1"/><rect x="14" y="8" width="1" height="1"/><rect x="16" y="8" width="1" height="1"/><rect x="18" y="8" width="1" height="1"/><rect x="20" y="8" width="1" height="1"/><rect x="22" y="8" width="1" height="1"/><rect x="24" y="8" width="7" height="1"/><rect x="10" y="9" width="2" height="1"/><rect x="13" y="9" width="1" height="1"/><rect x="15" y="9" width="4" height="1"/><rect x="21" y="9" width="1" height="1"/><rect x="2" y="10" width="2" height="1"/><rect x="5" y="10" width="2" height="1"/><rect x="8" y="10" width="1" height="1"/><rect x="11" y="10" width="1" height="1"/><rect x="16" y="10" width="4" height="1"/><rect x="21" y="10" width="2" height="1"/><rect x="24" y="10" width="1" height="1"/><rect x="30" y="10" width="1" height="1"/><rect x="2" y="11" width="3" height="1"/><rect x="6" y="11" width="1" height="1"/><rect x="10" y="11" width="1" height="1"/><rect x="12" y="11" width="1" height="1"/><rect x="20" y="11" width="2" height="1"/><rect x="25" y="11" width="2" height="1"/><rect x="28" y="11" width="2" height="1"/><rect x="2" y="12" width="2" height="1"/><rect x="7" y="12" width="5" height="1"/><rect x="13" y="12" width="1" height="1"/><rect x="15" y="12" width="1" height="1"/><rect x="17" y="12" width="2" height="1"/><rect x="20" y="12" width="1" height="1"/><rect x="22" y="12" width="1" height="1"/><rect x="26" y="12" width="1" height="1"/><rect x="28" y="12" width="1" height="1"/><rect x="4" y="13" width="1" height="1"/><rect x="9" y="13" width="2" height="1"/><rect x="13" y="13" width="1" height="1"/><rect x="16" y="13" width="4" height="1"/><rect x="21" y="13" width="1" height="1"/><rect x="24" y="13" width="1" height="1"/><rect x="26" y="13" width="2" height="1"/><rect x="30" y="13" width="1" height="1"/><rect x="3" y="14" width="1" height="1"/><rect x="5" y="14" width="2" height="1"/><rect x="8" y="14" width="1" height="1"/><rect x="10" y="14" width="4" height="1"/><rect x="18" y="14" width="1" height="1"/><rect x="21" y="14" width="1" height="1"/><rect x="24" y="14" width="1" height="1"/><rect x="30" y="14" width="1" height="1"/><rect x="11" y="15" width="5" height="1"/><rect x="18" y="15" width="1" height="1"/><rect x="24" y="15" width="7" height="1"/><rect x="4" y="16" width="2" height="1"/><rect x="7" y="16" width="3" height="1"/><rect x="12" y="16" width="1" height="1"/><rect x="14" y="16" width="5" height="1"/><rect x="21" y="16" width="2" height="1"/><rect x="24" y="16" width="3" height="1"/><rect x="28" y="16" width="1" height="1"/><rect x="30" y="16" width="1" height="1"/><rect x="2" y="17" width="1" height="1"/><rect x="6" y="17" width="1" height="1"/><rect x="9" y="17" width="3" height="1"/><rect x="13" y="17" width="1" height="1"/><rect x="16" y="17" width="2" height="1"/><rect x="20" y="17" width="1" height="1"/><rect x="22" y="17" width="3" height="1"/><rect x="26" y="17" width="1" height="1"/><rect x="28" y="17" width="1" height="1"/><rect x="30" y="17" width="1" height="1"/><rect x="2" y="18" width="2" height="1"/><rect x="5" y="18" width="4" height="1"/><rect x="10" y="18" width="1" height="1"/><rect x="12" y="18" width="2" height="1"/><rect x="17" y="18" width="1" height="1"/><rect x="20" y="18" width="1" height="1"/><rect x="22" y="18" width="2" height="1"/><rect x="25" y="18" width="1" height="1"/><rect x="27" y="18" width="1" height="1"/><rect x="2" y="19" width="3" height="1"/><rect x="11" y="19" width="2" height="1"/><rect x="20" y="19" width="3" height="1"/><rect x="26" y="19" width="1" height="1"/><rect x="28" y="19" width="2" height="1"/><rect x="2" y="20" width="2" height="1"/><rect x="5" y="20" width="5" height="1"/><rect x="11" y="20" width="1" height="1"/><rect x="13" y="20" width="3" height="1"/><rect x="17" y="20" width="1" height="1"/><rect x="21" y="20" width="1" height="1"/><rect x="25" y="20" width="3" height="1"/><rect x="30" y="20" width="1" height="1"/><rect x="2" y="21" width="3" height="1"/><rect x="9" y="21" width="1" height="1"/><rect x="11" y="21" width="5" height="1"/><rect x="18" y="21" width="1" height="1"/><rect x="24" y="21" width="2" height="1"/><rect x="27" y="21" width="2" height="1"/><rect x="2" y="22" width="4" height="1"/><rect x="7" y="22" width="2" height="1"/><rect x="10" y="22" width="1" height="1"/><rect x="13" y="22" width="2" height="1"/><rect x="18" y="22" width="3" height="1"/><rect x="22" y="22" width="8" height="1"/><rect x="10" y="23" width="2" height="1"/><rect x="13" y="23" width="1" height="1"/><rect x="17" y="23" width="1" height="1"/><rect x="22" y="23" width="1" height="1"/><rect x="26" y="23" width="2" height="1"/><rect x="2" y="24" width="7" height="1"/><rect x="11" y="24" width="4" height="1"/><rect x="17" y="24" width="1" height="1"/><rect x="19" y="24" width="4" height="1"/><rect x="24" y="24" width="1" height="1"/><rect x="26" y="24" width="2" height="1"/><rect x="2" y="25" width="1" height="1"/><rect x="8" y="25" width="1" height="1"/><rect x="11" y="25" width="1" height="1"/><rect x="13" y="25" width="2" height="1"/><rect x="18" y="25" width="2" height="1"/><rect x="22" y="25" width="1" height="1"/><rect x="26" y="25" width="1" height="1"/><rect x="29" y="25" width="2" height="1"/><rect x="2" y="26" width="1" height="1"/><rect x="4" y="26" width="3" height="1"/><rect x="8" y="26" width="1" height="1"/><rect x="10" y="26" width="2" height="1"/><rect x="15" y="26" width="1" height="1"/><rect x="17" y="26" width="1" height="1"/><rect x="19" y="26" width="1" height="1"/><rect x="21" y="26" width="7" height="1"/><rect x="29" y="26" width="2" height="1"/><rect x="2" y="27" width="1" height="1"/><rect x="4" y="27" width="3" height="1"/><rect x="8" y="27" width="1" height="1"/><rect x="10" y="27" width="1" height="1"/><rect x="12" y="27" width="2" height="1"/><rect x="16" y="27" width="1" height="1"/><rect x="18" y="27" width="1" height="1"/><rect x="22" y="27" width="2" height="1"/><rect x="29" y="27" width="2" height="1"/><rect x="2" y="28" width="1" height="1"/><rect x="4" y="28" width="3" height="1"/><rect x="8" y="28" width="1" height="1"/><rect x="12" y="28" width="1" height="1"/><rect x="15" y="28" width="3" height="1"/><rect x="19" y="28" width="5" height="1"/><rect x="25" y="28" width="2" height="1"/><rect x="28" y="28" width="3" height="1"/><rect x="2" y="29" width="1" height="1"/><rect x="8" y="29" width="1" height="1"/><rect x="10" y="29" width="2" height="1"/><rect x="13" y="29" width="2" height="1"/><rect x="16" y="29" width="1" height="1"/><rect x="18" y="29" width="1" height="1"/><rect x="24" y="29" width="2" height="1"/><rect x="27" y="29" width="2" height="1"/><rect x="30" y="29" width="1" height="1"/><rect x="2" y="30" width="7" height="1"/><rect x="10" y="30" width="1" height="1"/><rect x="12" y="30" width="2" height="1"/><rect x="15" y="30" width="1" height="1"/><rect x="17" y="30" width="1" height="1"/><rect x="19" y="30" width="1" height="1"/><rect x="21" y="30" width="2" height="1"/><rect x="25" y="30" width="2" height="1"/></g></svg>
+      <div class="qr-text">
+        <p class="qr-label">Scan to open</p>
+        <p class="qr-url">claude.ai/artifact/<br>1SAPmFKG56nwtE4Lsxjv5V</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="shell" id="form">
+
+    <div class="form-col">
+
+      <div class="section">
+        <div class="section-head"><h2>1 · Active bleeding</h2><span class="step-no">Highest priority</span></div>
+        <div class="section-body">
+          <div class="field-group">
+            <div class="field-legend">Select the most severe bleeding currently present</div>
+            <div class="options" data-name="bleeding">
+              <label class="opt"><input type="radio" name="bleeding" value="none"> No bleeding</label>
+              <label class="opt"><input type="radio" name="bleeding" value="minor"> Petechiae / minor mucosal bleeding</label>
+              <label class="opt"><input type="radio" name="bleeding" value="moderate"> GI bleeding / moderate bleeding</label>
+              <label class="opt"><input type="radio" name="bleeding" value="pulmonary"> Pulmonary haemorrhage</label>
+              <label class="opt"><input type="radio" name="bleeding" value="major"> Significant surgical / other major bleeding</label>
+              <label class="opt"><input type="radio" name="bleeding" value="ich"> Intracranial haemorrhage</label>
+              <label class="opt"><input type="radio" name="bleeding" value="life-threatening"> Life-threatening haemorrhage</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>2 · CNS / neurosurgical risk</h2><span class="step-no">Priority</span></div>
+        <div class="section-body">
+          <div class="field-group">
+            <div class="options" data-name="cns">
+              <label class="opt"><input type="radio" name="cns" value="none"> None</label>
+              <label class="opt"><input type="radio" name="cns" value="ivh"> IVH, not otherwise high-risk</label>
+              <label class="opt"><input type="radio" name="cns" value="ich_confirmed"> Confirmed ICH / abnormal neuro exam</label>
+              <label class="opt"><input type="radio" name="cns" value="neurosurg_planned"> Neurosurgery planned</label>
+              <label class="opt"><input type="radio" name="cns" value="neurosurg_postop"> Neurosurgical postoperative bleeding</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>3 · Planned invasive procedure</h2></div>
+        <div class="section-body">
+          <div class="field-group">
+            <div class="options" data-name="procedure">
+              <label class="opt"><input type="radio" name="procedure" value="none"> None planned</label>
+              <label class="opt"><input type="radio" name="procedure" value="lp"> Lumbar puncture</label>
+              <label class="opt"><input type="radio" name="procedure" value="central_line"> Central line insertion</label>
+              <label class="opt"><input type="radio" name="procedure" value="major_surgery"> Major surgery (non-neuro)</label>
+            </div>
+            <div class="hint">Procedure-specific platelet targets vary by institution — this tool will remind you to verify local guidance rather than apply one universal number.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>4 · Platelet count &amp; trend</h2></div>
+        <div class="section-body">
+          <div class="field-group">
+            <div class="field-legend">Current platelet count</div>
+            <div class="options" data-name="pltband">
+              <label class="opt"><input type="radio" name="pltband" value="lt25"> &lt; 25 ×10⁹/L</label>
+              <label class="opt"><input type="radio" name="pltband" value="25-49"> 25–49 ×10⁹/L</label>
+              <label class="opt"><input type="radio" name="pltband" value="50-99"> 50–99 ×10⁹/L</label>
+              <label class="opt"><input type="radio" name="pltband" value="ge100"> ≥ 100 ×10⁹/L</label>
+              <label class="opt"><input type="radio" name="pltband" value="unknown"> Not available / skip</label>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="field-legend">Trend since last count <span style="font-weight:400;color:#8B9A9C;">(optional)</span></div>
+            <div class="options" data-name="trend">
+              <label class="opt"><input type="radio" name="trend" value="falling"> Falling rapidly</label>
+              <label class="opt"><input type="radio" name="trend" value="stable"> Stable</label>
+              <label class="opt"><input type="radio" name="trend" value="rising"> Recovering / rising</label>
+              <label class="opt"><input type="radio" name="trend" value="unknown"> Unknown / skip</label>
+            </div>
+            <div class="hint">Trend is descriptive only — no validated rate-of-fall threshold is applied.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>5 · Clinical stability &amp; associated conditions</h2><span class="step-no">Optional — leave blank if none apply</span></div>
+        <div class="section-body">
+          <div class="field-group">
+            <div class="options" data-name="conditions" data-multi="true">
+              <label class="opt"><input type="checkbox" name="conditions" value="unstable"> Critically ill / haemodynamically unstable</label>
+              <label class="opt"><input type="checkbox" name="conditions" value="sepsis"> Suspected or confirmed sepsis</label>
+              <label class="opt"><input type="checkbox" name="conditions" value="nec"> Suspected or confirmed NEC</label>
+              <label class="opt"><input type="checkbox" name="conditions" value="dic"> Suspected DIC / consumptive coagulopathy</label>
+              <label class="opt"><input type="checkbox" name="conditions" value="ecmo"> On ECMO</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>6 · Coagulation status</h2></div>
+        <div class="section-body">
+          <div class="field-group">
+            <div class="options" data-name="coag">
+              <label class="opt"><input type="radio" name="coag" value="normal"> Normal / not tested</label>
+              <label class="opt"><input type="radio" name="coag" value="mild"> Mild abnormality</label>
+              <label class="opt"><input type="radio" name="coag" value="dic"> Suspected DIC / major coagulopathy</label>
+              <label class="opt"><input type="radio" name="coag" value="hypofib"> Significant hypofibrinogenaemia</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>7 · NAIT / FNAIT risk factors</h2><span class="step-no">Optional — select any that apply</span></div>
+        <div class="section-body">
+          <div class="field-group">
+            <div class="options" data-name="nait" data-multi="true">
+              <label class="opt"><input type="checkbox" name="nait" value="early_well"> Thrombocytopenia at birth/&lt;72h, infant otherwise well</label>
+              <label class="opt"><input type="checkbox" name="nait" value="maternal_itp"> Maternal history of ITP</label>
+              <label class="opt"><input type="checkbox" name="nait" value="sibling"> Previous affected sibling</label>
+              <label class="opt"><input type="checkbox" name="nait" value="prior_unexplained"> Previous unexplained neonatal thrombocytopenia</label>
+              <label class="opt"><input type="checkbox" name="nait" value="maternal_low"> Low maternal platelet count reported</label>
+              <label class="opt"><input type="checkbox" name="nait" value="severe_unexplained"> Severe thrombocytopenia (&lt;50) with no other explanation</label>
+            </div>
+            <div class="hint">This produces a clinical suspicion level only — it is not a validated NAIT diagnostic score.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rec-col">
+      <div class="rec-card" id="recCard">
+        <h2>Clinical decision support</h2>
+        <div id="riskBadge" class="risk-badge risk-none"><span class="lamp"></span><span>Awaiting input</span></div>
+        <div id="tags" class="tags"></div>
+        <div id="stepsWrap">
+          <p class="placeholder">Work through the checklist on the left. As you select findings, a prioritised, step-by-step management pathway will build here — starting with the most urgent step first — each with its supporting reference.</p>
+        </div>
+        <div class="confidence-line">
+          <span>Confidence in pathway</span>
+          <span id="confPill" class="confidence-pill">—</span>
+        </div>
+        <div id="missingBox"></div>
+
+        <div class="override-box">
+          <label class="check"><input type="checkbox" id="overrideCheck"> <span>I am choosing a different management pathway than suggested above</span></label>
+          <textarea id="overrideReason" placeholder="Reason for override (e.g. local protocol, specialist advice, clinical deterioration, information not captured here)…"></textarea>
+          <div id="overrideNote" style="display:none" class="override-note"></div>
+        </div>
+      </div>
+
+      <div class="evidence" style="margin-top:16px;">
+        <h2>Evidence sources</h2>
+        <div class="rev-date">Reflects BSH neonatal transfusion guidance and PlaNeT-2/MATISSE trial evidence. Verify against your institution's current guideline version before use.</div>
+        <div id="evList"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="finalplan-wrap">
+    <div class="finalplan">
+      <h2>Final management plan</h2>
+      <p class="fp-sub">Consensus category, generated from the checklist above — a suggested clinical pathway, not an order.</p>
+      <div id="planPills" class="plan-pills"></div>
+      <div id="fpEmpty" class="fp-empty">Complete the checklist above to generate a consensus management category.</div>
+      <div id="seqPanel" class="seq-panel" style="display:none;"></div>
+
+      <div id="txBox" class="tx-box" style="display:none;">
+        <h3>Platelet transfusion — parameters to explore<span id="txStepBadge"></span></h3>
+        <p class="tx-note">Complete the neonate context below. This produces a suggested volume/rate range only — it does not place an order. Confirm every parameter against your blood bank and institutional transfusion policy before prescribing.</p>
+
+        <div class="tx-impression">
+          <label for="txImpression">Clinical impression / diagnosis (editable)</label>
+          <textarea id="txImpression" placeholder="Auto-filled from the checklist — edit as needed…"></textarea>
+        </div>
+
+        <div class="tx-grid">
+          <div class="tx-field">
+            <label for="txGA">Gestational age (weeks)</label>
+            <input type="number" id="txGA" min="22" max="44" placeholder="e.g. 29">
+          </div>
+          <div class="tx-field">
+            <label for="txPNA">Chronological / postnatal age (days)</label>
+            <input type="number" id="txPNA" min="0" placeholder="e.g. 5">
+          </div>
+          <div class="tx-field">
+            <label for="txWeight">Current weight (kg)</label>
+            <input type="number" id="txWeight" min="0.3" step="0.01" placeholder="e.g. 1.20">
+          </div>
+          <div class="tx-field">
+            <label for="txABO">Neonate ABO / Rh group</label>
+            <select id="txABO">
+              <option value="">Not yet known</option>
+              <option>O positive</option><option>O negative</option>
+              <option>A positive</option><option>A negative</option>
+              <option>B positive</option><option>B negative</option>
+              <option>AB positive</option><option>AB negative</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="txResult" class="tx-result">
+          <p class="tx-line">Enter weight above to calculate a suggested volume range.</p>
+        </div>
+
+        <ul class="tx-list" id="txConsiderations"></ul>
+        <div id="txNaitBox" class="tx-nait-box" style="display:none;"></div>
+        <div class="tx-cite" id="txCite"></div>
+      </div>
+
+      <div id="ivigBox" class="tx-box" style="display:none;">
+        <h3>Second-line therapy — IVIG / corticosteroids (immune-mediated: ITP or NAIT)<span id="ivigStepBadge"></span></h3>
+        <p class="tx-note">Shown because immune-mediated thrombocytopenia (maternal ITP or NAIT) risk factors are present. Neonatal-specific trial evidence for IVIG/steroid dosing is limited — most figures below are extrapolated from older-child ITP practice. Confirm every dose with pediatric hematology and pharmacy before prescribing; this box does not order or administer anything.</p>
+
+        <div class="med-note ivig">
+          <h4>IVIG</h4>
+          <ul>
+            <li>Commonly cited regimen: <strong>1 g/kg as a single infusion</strong>; may repeat once after 24–48 hours if the platelet response is inadequate.</li>
+            <li>Alternative regimen sometimes used: <strong>0.4 g/kg/day for 3–5 days.</strong></li>
+            <li>Response is typically seen at 24–72 hours — let the count response guide whether to repeat, rather than a fixed schedule.</li>
+            <li>Confirm brand-specific infusion rate, sodium/sugar content (renal/cardiac status), and premedication policy with pharmacy — these vary by product and are not standardised here.</li>
+          </ul>
+        </div>
+
+        <div class="med-note steroid">
+          <h4>Corticosteroids</h4>
+          <ul>
+            <li><strong>IV methylprednisolone</strong> is the option more commonly used in neonatal practice: typically cited around <strong>1–2 mg/kg/day divided every 12 hours</strong>, short course (roughly 3–7 days), tapered if given longer than a few days.</li>
+            <li><strong>Dexamethasone</strong> pulses are used more often in older children/adults with ITP than in neonates; neonatal evidence is very limited, so treat it as a specialist-selected alternative rather than a routine neonatal first choice.</li>
+            <li>The choice between the two, and the exact dose/duration, should follow your pediatric hematology protocol — this reflects a widely-cited practice pattern, not a validated neonatal dosing standard.</li>
+          </ul>
+        </div>
+
+        <div class="tx-cite" id="ivigCite"></div>
+      </div>
+
+      <div id="dischargeBox" class="discharge-box" style="display:none;">
+        <div class="dc-title">⚠️ Discharge &amp; follow-up safety points</div>
+        <p class="dc-sub">Applies whenever the infant goes home with a low or recovering platelet count, and/or after IVIG or corticosteroid therapy. Give this in writing to the family with an emergency contact number.</p>
+        <div class="dc-grid">
+          <div class="dc-item">
+            <h5>When to seek urgent medical attention</h5>
+            <ul>
+              <li>New or spreading bruising/petechiae, or any fresh bleeding (gums, nose, blood in stool/vomit/urine)</li>
+              <li>Unusual lethargy, poor feeding, high-pitched cry, irritability, or a bulging fontanelle (possible intracranial bleeding)</li>
+              <li>Fever, or any deterioration the family is worried about</li>
+            </ul>
+          </div>
+          <div class="dc-item">
+            <h5>Injections while the count is low</h5>
+            <ul>
+              <li><strong>Avoid intramuscular injections</strong> (including IM vaccines) while the platelet count remains significantly low — use the subcutaneous route or defer per local policy, and confirm with the team before any IM dose (e.g. vitamin K if not already given)</li>
+              <li>Apply firm, prolonged pressure after any heel-prick or venepuncture</li>
+            </ul>
+          </div>
+          <div class="dc-item">
+            <h5>Repeat count in follow-up clinic</h5>
+            <ul>
+              <li>Typically recheck CBC/platelet count within <strong>48–72 hours</strong> of discharge, or sooner if instructed by the treating team</li>
+              <li>Continue serial counts until a clear, sustained rising trend or normalisation is confirmed</li>
+            </ul>
+          </div>
+          <div class="dc-item">
+            <h5>Escalate to pediatric hematology follow-up</h5>
+            <ul>
+              <li>Count has not normalised in the expected timeframe, or is falling again after initial response</li>
+              <li>Confirmed or strongly suspected NAIT/ITP requiring structured monitoring, or recurrent/unexplained thrombocytopenia</li>
+              <li>Any bleeding recurrence, or poor/no response to treatment given</li>
+            </ul>
+          </div>
+          <div class="dc-item">
+            <h5>Vaccination</h5>
+            <ul>
+              <li>If IVIG was given: <strong>defer live-attenuated vaccines</strong> (MMR, varicella, rotavirus, live-attenuated influenza) — commonly cited intervals are on the order of <strong>8–11 months</strong> depending on dose; confirm the exact interval against your national immunisation schedule</li>
+              <li>Routine inactivated vaccines can generally proceed on schedule unless the count remains very low — discuss timing/route with primary care</li>
+              <li>Document the deferral clearly for the family and primary care/GP</li>
+            </ul>
+          </div>
+          <div class="dc-item">
+            <h5>Future pregnancy notes (if NAIT / maternal ITP)</h5>
+            <ul>
+              <li>Refer the mother for hematology/obstetric counselling before any future pregnancy</li>
+              <li>Document the infant's diagnosis, any HPA typing/antibody results, and treatment given — this informs antenatal risk assessment and monitoring next time</li>
+              <li>Future pregnancies may need specialist antenatal planning (e.g. serial fetal monitoring or antenatal IVIG) per hematology/obstetric input</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="disclaimer">
+  <strong>Clinical decision-support prototype for educational and research use.</strong><br>
+  It does not replace bedside assessment, institutional NICU protocols, transfusion medicine guidance, pediatric hematology consultation, or emergency clinical judgment.
+  Every suggestion here is a suggested clinical pathway — verify against local protocol and specialist judgment. Thresholds and recommendations must be checked against current local and national guidance.
+  This demo stores no identifiable patient data.
+</footer>
+
+<script>
+(function(){
+  const CITES = {
+    bsh: {tag:'BSH', full:'British Society for Haematology — guideline on transfusion for fetuses, neonates and older children (with subsequent neonatal updates).'},
+    planet2: {tag:'PlaNeT-2/MATISSE', full:'Curley A, et al. Randomised trial of platelet-transfusion thresholds in neonates (PlaNeT-2/MATISSE), NEJM 2019 — a liberal 50×10⁹/L threshold was associated with a higher rate of death or major bleeding than a restrictive 25×10⁹/L threshold in preterm infants.'},
+    nait: {tag:'FNAIT consensus', full:'International consensus / society guidance on diagnosis and management of fetal and neonatal alloimmune thrombocytopenia (FNAIT).'},
+    consensus: {tag:'Expert consensus', full:'Expert-consensus and international platelet-transfusion guidance for neonates, used where randomised evidence is not available.'},
+    txa: {tag:'TXA — limited evidence', full:'Case reports and limited paediatric/neonatal literature describing antifibrinolytic (TXA) use in pulmonary haemorrhage; evidence is limited and use is off-label.'},
+    emergency: {tag:'Emergency principles', full:'Standard neonatal resuscitation and emergency haemorrhage-management principles; always confirmed against local NICU protocol.'},
+    txpractice: {tag:'Transfusion practice', full:'General neonatal platelet-transfusion practice cited across BSH/AABB-aligned guidance: typical volume ~10–20 mL/kg over roughly 1–2 hours (slower if cardiovascular instability or fluid restriction); premedication not routinely recommended absent prior reaction history. Unit selection follows standard blood banking practice — ABO-identical/RhD-matched preferred, with ABO-compatible or group-O and RhD-negative-preferred as practical fallbacks; when HPA-matched platelets are unavailable for suspected NAIT/FNAIT, washed irradiated maternal platelets or the best available compatible unit are recognised interim options while escalating to a referral transfusion medicine service. These are practical starting figures, not a fixed prescription — confirm against your institution\u2019s transfusion medicine service.'},
+    immunotherapy: {tag:'IVIG/steroid practice', full:'Practice-pattern IVIG and corticosteroid dosing cited across pediatric ITP and NAIT literature (e.g. IVIG ~1 g/kg, may repeat once at 24–48h; methylprednisolone ~1–2 mg/kg/day short course) — largely extrapolated from older-child ITP evidence given limited neonatal-specific trials. Live-attenuated vaccine deferral after IVIG (commonly ~8–11 months depending on dose) follows national immunisation/ACIP-aligned schedules. Confirm all doses, durations and vaccine-deferral intervals with pediatric hematology, pharmacy and your national immunisation guidance before use.'}
+  };
+
+  const state = { bleeding:null, cns:null, procedure:null, pltband:null, trend:null, coag:null, conditions:[], nait:[] };
+
+  document.querySelectorAll('.options').forEach(group=>{
+    const name = group.dataset.name;
+    const multi = group.dataset.multi === 'true';
+    group.querySelectorAll('input').forEach(input=>{
+      input.addEventListener('change', ()=>{
+        if(multi){
+          const set = new Set(state[name]);
+          if(input.checked) set.add(input.value); else set.delete(input.value);
+          state[name] = Array.from(set);
+        } else {
+          state[name] = input.value;
+        }
+        group.querySelectorAll('.opt').forEach(o=>{
+          const inp = o.querySelector('input');
+          o.classList.toggle('checked', inp.checked);
+        });
+        render();
+      });
+    });
+  });
+
+  function citeTag(key){
+    const c = CITES[key];
+    return '<span class="cite-tag" data-cite="'+key+'">'+c.tag+'</span>';
+  }
+
+  function naitLevel(){
+    const n = state.nait.length;
+    if(n>=3) return 'high';
+    if(n>=1) return 'intermediate';
+    return 'low';
+  }
+
+  function compute(){
+    const steps = [];
+    const tags = new Set();
+    let risk = {level:'none', label:'Awaiting input'};
+
+    const hasBleedingInput = !!state.bleeding;
+    const hasEnoughForPathway = state.bleeding || state.cns || state.pltband;
+
+    if(!hasEnoughForPathway){
+      return {steps, tags:[], risk};
+    }
+
+    if(state.bleeding === 'life-threatening'){
+      steps.push({t:'Activate the emergency haemorrhage pathway — stabilise airway, breathing and circulation first.', c:'emergency'});
+      steps.push({t:'Do not delay platelet transfusion for laboratory confirmation in life-threatening bleeding.', c:'consensus'});
+      steps.push({t:'Notify pediatric hematology / transfusion medicine urgently.', c:'bsh'});
+      risk = {level:'red', label:'URGENT — life-threatening bleeding'};
+      tags.add('URGENT PLATELET TRANSFUSION / HAEMORRHAGE PATHWAY'); tags.add('SPECIALIST REVIEW');
+    }
+    else if(state.cns==='ich_confirmed' || state.cns==='neurosurg_planned' || state.cns==='neurosurg_postop' || state.bleeding==='ich' || state.procedure==='major_surgery'){
+      steps.push({t:'Do not apply the routine prophylactic threshold — this is a high-risk CNS / major surgical situation.', c:'bsh'});
+      steps.push({t:'Use a CNS- or surgery-specific platelet target; confirm the current figure with hematology/transfusion medicine and local protocol.', c:'consensus'});
+      steps.push({t:'Involve pediatric hematology and neurosurgery/transfusion medicine urgently for joint management.', c:'bsh'});
+      risk = {level:'red', label:'HIGH RISK — CNS bleeding / neurosurgery / major surgery'};
+      tags.add('URGENT PLATELET TRANSFUSION / HAEMORRHAGE PATHWAY'); tags.add('SPECIALIST REVIEW');
+    }
+    else if(naitLevel()==='high'){
+      steps.push({t:'Treat as high suspicion for FNAIT/NAIT — this is a clinical suspicion level, not a validated diagnostic score.', c:'nait'});
+      steps.push({t:'Send maternal platelet count and maternal anti-HPA antibody testing per local laboratory pathway.', c:'nait'});
+      steps.push({t:'Arrange maternal/neonatal HPA typing according to local pathway; involve transfusion medicine.', c:'nait'});
+      steps.push({t:'Assess for intracranial haemorrhage per local guidance; consider HPA-compatible platelets where available.', c:'nait'});
+      steps.push({t:'Do not delay emergency treatment of major bleeding while awaiting laboratory confirmation.', c:'emergency'});
+      risk = {level:'orange', label:'HIGH SUSPICION — possible FNAIT/NAIT'};
+      tags.add('INVESTIGATE'); tags.add('SPECIALIST REVIEW'); tags.add('CONSIDER PLATELET TRANSFUSION');
+    }
+    else if(['moderate','major','pulmonary'].includes(state.bleeding)){
+      steps.push({t:'Assess and correct any coagulation abnormality — platelet transfusion alone may not correct the bleeding mechanism.', c:'bsh'});
+      steps.push({t:'Consider platelet transfusion to a bleeding-specific target rather than the routine prophylactic threshold.', c:'consensus'});
+      if(state.bleeding==='pulmonary'){
+        steps.push({t:'Confirm airway/ventilation stabilisation and correction of the underlying haemostatic abnormality as primary management.', c:'emergency'});
+        steps.push({t:'TXA is an off-label adjunct in neonatal pulmonary haemorrhage with limited evidence — it does not replace platelet or coagulation support. No universal ETT dose exists; determine dosing via pharmacy/transfusion medicine if used.', c:'txa'});
+      }
+      steps.push({t:'Involve pediatric hematology / transfusion medicine review.', c:'bsh'});
+      risk = {level:'orange', label:'ACTIVE BLEEDING — bleeding-specific pathway'};
+      tags.add('CONSIDER PLATELET TRANSFUSION'); tags.add('SPECIALIST REVIEW');
+    }
+    else {
+      // stable / no significant bleeding — restrictive threshold logic
+      if(state.pltband==='lt25'){
+        steps.push({t:'Consider prophylactic platelet transfusion at the restrictive 25×10⁹/L threshold if genuinely stable with no bleeding.', c:'planet2'});
+        steps.push({t:'Investigate the likely mechanism (production vs destruction vs consumption) before assuming transfusion is required.', c:'consensus'});
+        risk = {level:'yellow', label:'CONSIDER PROPHYLACTIC TRANSFUSION (restrictive threshold)'};
+        tags.add('CONSIDER PLATELET TRANSFUSION'); tags.add('INVESTIGATE');
+      } else if(state.pltband==='25-49'){
+        steps.push({t:'Observe and reassess — do not transfuse merely because the count is 25–50×10⁹/L; the liberal threshold was associated with worse outcomes in PlaNeT-2/MATISSE.', c:'planet2'});
+        steps.push({t:'Investigate the underlying cause and monitor the trend.', c:'consensus'});
+        risk = {level:'yellow', label:'OBSERVE + REASSESS'};
+        tags.add('OBSERVE'); tags.add('INVESTIGATE');
+      } else if(state.pltband==='50-99'){
+        steps.push({t:'Observe; routine prophylactic transfusion is not indicated at this count in a stable infant.', c:'bsh'});
+        risk = {level:'green', label:'OBSERVE'};
+        tags.add('OBSERVE');
+      } else if(state.pltband==='ge100'){
+        steps.push({t:'No transfusion indication on platelet count alone; continue routine monitoring.', c:'bsh'});
+        risk = {level:'green', label:'ROUTINE CARE'};
+        tags.add('OBSERVE');
+      } else if(state.bleeding==='minor'){
+        steps.push({t:'Minor bleeding alone, in the absence of severe thrombocytopenia, does not automatically indicate transfusion — correlate with count and trend above.', c:'consensus'});
+        risk = {level:'yellow', label:'OBSERVE + REASSESS'};
+        tags.add('OBSERVE');
+      }
+
+      if(naitLevel()==='intermediate'){
+        steps.push({t:'Some NAIT/FNAIT risk factors are present — consider maternal platelet count and further work-up per local pathway.', c:'nait'});
+        tags.add('INVESTIGATE');
+        if(risk.level==='green') risk = {level:'yellow', label:'OBSERVE — investigate possible NAIT'};
+      }
+    }
+
+    // procedure reminder
+    if(state.procedure && state.procedure!=='none' && state.procedure!=='major_surgery'){
+      steps.push({t:'An invasive procedure is planned — verify your institution’s current procedure-specific platelet target rather than using one universal number.', c:'consensus'});
+      tags.add('INVESTIGATE');
+    }
+
+    // coagulation reminder (always, if abnormal)
+    if(state.coag && state.coag!=='normal'){
+      steps.push({t:'Coagulation abnormality flagged — evaluate and correct the relevant coagulation defect according to local protocol; platelet transfusion alone will not address this.', c:'bsh'});
+    }
+
+    // conditions reminder
+    if(state.conditions.length){
+      const labels = {unstable:'critical instability', sepsis:'sepsis', nec:'NEC', dic:'DIC', ecmo:'ECMO'};
+      const present = state.conditions.map(c=>labels[c]).join(', ');
+      steps.push({t:'Associated condition(s) present ('+present+') may modify the threshold used per clinical judgment and local protocol — this tool does not set a specific number for this.', c:'consensus'});
+      tags.add('SPECIALIST REVIEW');
+    }
+
+    // trailing reminder
+    steps.push({t:'Document the platelet target and indication used, and verify the final decision against current local/national guidance.', c:'bsh'});
+
+    return {steps, tags:Array.from(tags), risk};
+  }
+
+  function confidenceInfo(){
+    const fields = [state.bleeding, state.cns, state.procedure, state.pltband, state.trend, state.coag];
+    const filled = fields.filter(Boolean).length;
+    const naitTouched = state.nait.length>0 || document.querySelector('[data-name="nait"]').dataset.touched==='true';
+    const missing = [];
+    if(!state.bleeding) missing.push('bleeding status');
+    if(!state.cns) missing.push('CNS risk');
+    if(!state.pltband) missing.push('platelet count band');
+    if(!state.trend) missing.push('platelet trend');
+    if(!state.coag) missing.push('coagulation status');
+    if(!naitTouched) missing.push('NAIT/FNAIT risk factors (maternal platelet count in particular)');
+
+    let level = 'low', cls='conf-low';
+    if(filled>=6 && naitTouched){ level='High'; cls='conf-high'; }
+    else if(filled>=4){ level='Moderate'; cls='conf-mod'; }
+    else { level='Low'; cls='conf-low'; }
+    return {level, cls, missing};
+  }
+
+  document.querySelectorAll('[data-name="nait"] input, [data-name="conditions"] input').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ inp.closest('.options').dataset.touched='true'; });
+  });
+
+  function render(){
+    const {steps, tags, risk} = compute();
+
+    const badge = document.getElementById('riskBadge');
+    badge.className = 'risk-badge risk-'+risk.level;
+    badge.innerHTML = '<span class="lamp"></span><span>'+risk.label+'</span>';
+
+    document.getElementById('tags').innerHTML = tags.map(t=>'<span class="tag">'+t+'</span>').join('');
+
+    const wrap = document.getElementById('stepsWrap');
+    if(!steps.length){
+      wrap.innerHTML = '<p class="placeholder">Work through the checklist on the left. As you select findings, a prioritised, step-by-step management pathway will build here — starting with the most urgent step first — each with its supporting reference.</p>';
+    } else {
+      wrap.innerHTML = '<ol class="steps">'+ steps.map(s=>'<li>'+s.t+' '+citeTag(s.c)+'</li>').join('') +'</ol>';
+    }
+
+    const conf = confidenceInfo();
+    const pill = document.getElementById('confPill');
+    pill.textContent = steps.length ? conf.level : '—';
+    pill.className = 'confidence-pill ' + (steps.length ? conf.cls : '');
+
+    const mb = document.getElementById('missingBox');
+    if(steps.length && conf.missing.length){
+      mb.innerHTML = '<div class="missing-box"><strong>Missing information:</strong> '+conf.missing.join('; ')+'.</div>';
+    } else {
+      mb.innerHTML = '';
+    }
+
+    renderEvidence(steps);
+    renderFinalPlan(tags, risk, steps);
+  }
+
+  const PLAN_DEFS = [
+    {id:'observe', label:'Watchful observation'},
+    {id:'repeat', label:'Repeat platelet count & reassess'},
+    {id:'transfuse', label:'Platelet transfusion'},
+    {id:'other', label:'Other targeted management'}
+  ];
+
+  function deriveFinalPlan(tags, risk){
+    const tset = new Set(tags);
+    if(tset.has('URGENT PLATELET TRANSFUSION / HAEMORRHAGE PATHWAY') && (risk.level==='red')){
+      return {primary:'transfuse', urgency:'urgent', secondary:tags.filter(t=>t!=='URGENT PLATELET TRANSFUSION / HAEMORRHAGE PATHWAY')};
+    }
+    if(tset.has('CONSIDER PLATELET TRANSFUSION')){
+      return {primary:'transfuse', urgency:'consider', secondary:tags.filter(t=>t!=='CONSIDER PLATELET TRANSFUSION')};
+    }
+    if(risk.label==='OBSERVE + REASSESS' || (risk.level==='yellow' && tset.has('OBSERVE') && tset.has('INVESTIGATE'))){
+      return {primary:'repeat', urgency:null, secondary:tags.filter(t=>t!=='OBSERVE')};
+    }
+    if(tset.has('OBSERVE')){
+      return {primary:'observe', urgency:null, secondary:tags.filter(t=>t!=='OBSERVE')};
+    }
+    if(tags.length){
+      return {primary:'other', urgency:null, secondary:tags};
+    }
+    return null;
+  }
+
+  let impressionEdited = false;
+  document.getElementById('txImpression').addEventListener('input', ()=>{ impressionEdited = true; });
+
+  function buildImpression(){
+    const parts = [];
+    if(state.pltband){
+      const bandLabel = {lt25:'platelet count <25×10⁹/L','25-49':'platelet count 25–49×10⁹/L','50-99':'platelet count 50–99×10⁹/L',ge100:'platelet count ≥100×10⁹/L',unknown:'platelet count not available'}[state.pltband];
+      parts.push(bandLabel);
+    }
+    if(state.trend && state.trend!=='unknown') parts.push('trend: '+state.trend);
+    if(state.bleeding && state.bleeding!=='none') parts.push('bleeding: '+state.bleeding.replace(/-/g,' '));
+    if(state.cns && state.cns!=='none') parts.push('CNS risk: '+state.cns.replace(/_/g,' '));
+    if(naitLevel()!=='low') parts.push('NAIT/FNAIT suspicion: '+naitLevel());
+    if(state.conditions.length) parts.push('associated: '+state.conditions.join(', '));
+    if(!parts.length) return '';
+    return 'Neonate with ' + parts.join('; ') + '.';
+  }
+
+  function renderFinalPlan(tags, risk, steps){
+    const plan = steps.length ? deriveFinalPlan(tags, risk) : null;
+    const pillsEl = document.getElementById('planPills');
+    const emptyEl = document.getElementById('fpEmpty');
+    const txBox = document.getElementById('txBox');
+
+    if(!plan){
+      pillsEl.innerHTML = '';
+      emptyEl.style.display = 'block';
+      txBox.style.display = 'none';
+      document.getElementById('ivigBox').style.display = 'none';
+      document.getElementById('seqPanel').style.display = 'none';
+      document.getElementById('dischargeBox').style.display = 'none';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    pillsEl.innerHTML = PLAN_DEFS.map(p=>{
+      const active = p.id === plan.primary;
+      let label = p.label;
+      if(active && p.id==='transfuse') label += plan.urgency==='urgent' ? ' — urgent' : ' — consider';
+      return '<div class="plan-pill'+(active?' active':'')+'"><span class="dot"></span><span>'+label+'</span></div>';
+    }).join('');
+
+    if(plan.primary === 'transfuse'){
+      txBox.style.display = 'block';
+      if(!impressionEdited){
+        document.getElementById('txImpression').value = buildImpression();
+      }
+      updateTxResult();
+      renderTxConsiderations(plan);
+      document.getElementById('txCite').innerHTML = citeTag('txpractice') + ' ' + '<span style="font-size:12.5px;color:var(--paper-dim);">See evidence panel above for full text.</span>';
+      if(!document.getElementById('evList').innerHTML.includes('Transfusion practice')){
+        const used = new Set(steps.map(s=>s.c)); used.add('txpractice');
+        const order = ['emergency','bsh','planet2','nait','consensus','txa','txpractice'];
+        const list = order.filter(k=>used.has(k));
+        document.getElementById('evList').innerHTML = list.map(k=>{
+          const c = CITES[k];
+          return '<div class="ev-item"><span class="ev-tag">'+c.tag+'</span>'+c.full+'</div>';
+        }).join('');
+      }
+    } else {
+      txBox.style.display = 'none';
+    }
+
+    const ivigBox = document.getElementById('ivigBox');
+    if(naitLevel() !== 'low'){
+      ivigBox.style.display = 'block';
+      document.getElementById('ivigCite').innerHTML = citeTag('immunotherapy') + ' ' + '<span style="font-size:12.5px;color:var(--paper-dim);">See evidence panel above for full text.</span>';
+      const used = new Set(steps.map(s=>s.c));
+      if(plan.primary==='transfuse') used.add('txpractice');
+      used.add('immunotherapy');
+      const order = ['emergency','bsh','planet2','nait','consensus','txa','txpractice','immunotherapy'];
+      const list = order.filter(k=>used.has(k));
+      document.getElementById('evList').innerHTML = list.map(k=>{
+        const c = CITES[k];
+        return '<div class="ev-item"><span class="ev-tag">'+c.tag+'</span>'+c.full+'</div>';
+      }).join('');
+    } else {
+      ivigBox.style.display = 'none';
+    }
+
+    const seqPanel = document.getElementById('seqPanel');
+    const bothShown = (plan.primary === 'transfuse') && (naitLevel() !== 'low');
+    if(bothShown){
+      const txFirst = (state.bleeding && state.bleeding !== 'none') || plan.urgency === 'urgent';
+      const step1 = txFirst ? 'Platelet transfusion' : 'IVIG ± corticosteroids';
+      const step2 = txFirst ? 'IVIG ± corticosteroids' : 'Platelet transfusion';
+      const rationale = txFirst
+        ? 'Bleeding is present (or this is an urgent pathway) — platelets act immediately to control bleeding. IVIG (± corticosteroids) is added as second-line/adjunct therapy: it takes 24–72 hours to raise the count, so it should not delay transfusion, but it helps sustain the response and reduce further transfusion need.'
+        : 'No active bleeding — IVIG (± corticosteroids) is reasonable first-line therapy here, to raise the count and avoid unnecessary transfusion, particularly where HPA-matched platelets may not be available. Reserve platelet transfusion as a rescue step if bleeding develops, the count falls critically, or the response to IVIG is inadequate.';
+      seqPanel.style.display = 'block';
+      seqPanel.innerHTML = '<div class="seq-title">Suggested treatment sequence for this case</div>'
+        + '<ul class="seq-list"><li><strong>Step 1</strong> — '+step1+'</li><li><strong>Step 2</strong> — '+step2+'</li></ul>'
+        + '<p class="seq-note">'+rationale+' Full detail for each option is in the boxes below — reordered to match this sequence.</p>';
+
+      const txBoxEl = document.getElementById('txBox');
+      const ivigBoxEl = document.getElementById('ivigBox');
+      const parent = txBoxEl.parentNode;
+      if(txFirst){
+        parent.insertBefore(txBoxEl, ivigBoxEl);
+        document.getElementById('txStepBadge').textContent = 'STEP 1';
+        document.getElementById('ivigStepBadge').textContent = 'STEP 2';
+      } else {
+        parent.insertBefore(ivigBoxEl, txBoxEl);
+        document.getElementById('ivigStepBadge').textContent = 'STEP 1';
+        document.getElementById('txStepBadge').textContent = 'STEP 2';
+      }
+    } else {
+      seqPanel.style.display = 'none';
+      document.getElementById('txStepBadge').textContent = '';
+      document.getElementById('ivigStepBadge').textContent = '';
+    }
+
+    const dischargeBox = document.getElementById('dischargeBox');
+    const lowCount = state.pltband === 'lt25' || state.pltband === '25-49';
+    const showDischarge = plan.primary === 'transfuse' || naitLevel() !== 'low' || lowCount;
+    dischargeBox.style.display = showDischarge ? 'block' : 'none';
+  }
+
+  function renderTxConsiderations(plan){
+    const items = [];
+    items.push('Preferred unit: ABO-identical, RhD-matched platelets where available.');
+    items.push('If ABO-identical is unavailable: ABO-compatible or group-O platelets can be used — check the unit\u2019s plasma volume/titre with blood bank, as high-titre anti-A/B in out-of-group plasma can rarely cause haemolysis.');
+    items.push('RhD-negative infants (especially females, for future alloimmunisation risk) should preferably receive RhD-negative platelets; if only RhD-positive product is available in an emergency, discuss anti-D prophylaxis policy with blood bank/transfusion medicine.');
+    items.push('Confirm irradiated / CMV-safe or leucodepleted / pathogen-reduced status per local blood bank policy.');
+    items.push('Premedication is not routinely recommended for neonatal platelet transfusion unless there is a documented prior reaction — follow local policy if one exists.');
+    if(plan.urgency === 'urgent'){
+      items.unshift('This is an urgent pathway — do not let ABO/Rh selection or volume/rate calculation delay transfusion in life-threatening bleeding; the most immediately available compatible unit takes priority, confirmed with blood bank in parallel.');
+    }
+    document.getElementById('txConsiderations').innerHTML = items.map(i=>'<li>'+i+'</li>').join('');
+
+    const naitBox = document.getElementById('txNaitBox');
+    if(naitLevel()!=='low'){
+      naitBox.style.display = 'block';
+      naitBox.innerHTML = '<div class="tx-nait-title">If NAIT/FNAIT is suspected and HPA-matched (antigen-negative) platelets are not available — e.g. secondary hospital without apheresis/HPA-typed stock</div>'
+        + '<ol>'
+        + '<li>Do not delay treatment of significant bleeding while waiting for HPA-matched product — give the best available compatible platelets (standard random-donor, ABO/RhD-matched) as first-line; even mismatched platelets often give a useful, if shortened, response.</li>'
+        + '<li>Washed, irradiated <strong>maternal platelets</strong> are a recognised practical alternative where available and time permits — the mother\u2019s own platelets lack the antigen the infant\u2019s antibodies are directed against, so they behave like an HPA-matched unit; this requires maternal consent, screening and processing per local blood bank capability, and is not always feasible in an acute secondary-hospital setting.</li>'
+        + '<li>If bleeding is severe or platelet increments are poor, escalate early to the referral/tertiary centre or regional transfusion medicine service for HPA-typed apheresis platelets and IVIG discussion rather than waiting locally.</li>'
+        + '<li>Document that a substitution was used because HPA-matched platelets were unavailable, and reassess response closely (repeat count, bleeding status) given the expected shorter survival of non-matched platelets.</li>'
+        + '</ol>';
+    } else {
+      naitBox.style.display = 'none';
+      naitBox.innerHTML = '';
+    }
+  }
+
+  function updateTxResult(){
+    const w = parseFloat(document.getElementById('txWeight').value);
+    const ga = document.getElementById('txGA').value;
+    const pna = document.getElementById('txPNA').value;
+    const abo = document.getElementById('txABO').value;
+    const box = document.getElementById('txResult');
+    if(!w || w<=0){
+      box.innerHTML = '<p class="tx-line">Enter weight above to calculate a suggested volume range.</p>';
+      return;
+    }
+    const low = (w*10).toFixed(0);
+    const high = (w*20).toFixed(0);
+    let html = '<p class="tx-line">Suggested volume: <strong>'+low+'–'+high+' mL</strong> (≈10–20 mL/kg for '+w+' kg)</p>';
+    html += '<p class="tx-line">Suggested duration: <strong>~1–2 hours</strong> (slower if cardiovascularly unstable or fluid-restricted; do not exceed local unit hang-time limit)</p>';
+    if(ga) html += '<p class="tx-line">Gestational age on record: <strong>'+ga+' weeks</strong></p>';
+    if(pna) html += '<p class="tx-line">Postnatal age on record: <strong>'+pna+' days</strong></p>';
+    if(abo) html += '<p class="tx-line">Neonate group on record: <strong>'+abo+'</strong> — confirm product compatibility with blood bank.</p>';
+    box.innerHTML = html;
+  }
+
+  ['txWeight','txGA','txPNA','txABO'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', updateTxResult);
+    document.getElementById(id).addEventListener('change', updateTxResult);
+  });
+
+  function renderEvidence(steps){
+    const used = new Set(steps.map(s=>s.c));
+    const order = ['emergency','bsh','planet2','nait','consensus','txa'];
+    const list = order.filter(k=>used.has(k));
+    const el = document.getElementById('evList');
+    if(!list.length){
+      el.innerHTML = '<p class="ev-item">Sources will appear here as the pathway builds.</p>';
+      return;
+    }
+    el.innerHTML = list.map(k=>{
+      const c = CITES[k];
+      return '<div class="ev-item"><span class="ev-tag">'+c.tag+'</span>'+c.full+'</div>';
+    }).join('');
+  }
+
+  document.getElementById('overrideCheck').addEventListener('change', updateOverride);
+  document.getElementById('overrideReason').addEventListener('input', updateOverride);
+  function updateOverride(){
+    const checked = document.getElementById('overrideCheck').checked;
+    const reason = document.getElementById('overrideReason').value.trim();
+    const note = document.getElementById('overrideNote');
+    if(checked && reason){
+      note.style.display='block';
+      note.textContent = 'Clinician override documented: pursuing a different pathway. Reason: "'+reason+'"';
+    } else if(checked){
+      note.style.display='block';
+      note.textContent = 'Clinician override selected — please document a reason above.';
+    } else {
+      note.style.display='none';
+    }
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
